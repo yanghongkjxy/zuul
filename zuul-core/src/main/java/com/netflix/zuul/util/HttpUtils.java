@@ -16,12 +16,15 @@
 package com.netflix.zuul.util;
 
 import com.netflix.zuul.message.Headers;
+import com.netflix.zuul.message.ZuulMessage;
 import com.netflix.zuul.message.http.HttpHeaderNames;
 import com.netflix.zuul.message.http.HttpRequestInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * User: Mike Smith
@@ -30,6 +33,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class HttpUtils
 {
+    private static final Logger LOG = LoggerFactory.getLogger(HttpUtils.class);
+    private static final char[] MALICIOUS_HEADER_CHARS = {'\r', '\n'};
+
     /**
      * Get the IP address of client making the request.
      *
@@ -90,6 +96,50 @@ public class HttpUtils
         return ae != null && isGzipped(ae);
     }
 
+    /**
+     * Ensure decoded new lines are not propagated in headers, in order to prevent XSS
+     *
+     * @param input - decoded header string
+     * @return - clean header string
+     */
+    public static String stripMaliciousHeaderChars(String input) 
+    {
+        for (char c : MALICIOUS_HEADER_CHARS) {
+            input = StringUtils.remove(input, c);
+        }
+        return input;
+    }
+
+
+    public static boolean hasNonZeroContentLengthHeader(ZuulMessage msg)
+    {
+        boolean hasNonZeroValue = false;
+        String contentLengthValue = msg.getHeaders().getFirst(com.netflix.zuul.message.http.HttpHeaderNames.CONTENT_LENGTH);
+        if (StringUtils.isNotEmpty(contentLengthValue) && StringUtils.isNumeric(contentLengthValue)) {
+            int value = 0;
+            try {
+                value = Integer.parseInt(contentLengthValue);
+            }
+            catch (NumberFormatException e) {
+                LOG.info("Invalid Content-Length header value on request. " +
+                        "value = " + String.valueOf(contentLengthValue));
+            }
+            hasNonZeroValue = value > 0;
+        }
+        return hasNonZeroValue;
+    }
+
+    public static boolean hasChunkedTransferEncodingHeader(ZuulMessage msg)
+    {
+        boolean isChunked = false;
+        String teValue = msg.getHeaders().getFirst(com.netflix.zuul.message.http.HttpHeaderNames.TRANSFER_ENCODING);
+        if (StringUtils.isNotEmpty(teValue)) {
+            isChunked = "chunked".equals(teValue.toLowerCase());
+        }
+        return isChunked;
+    }
+
+
     public static class UnitTest {
 
         @Test
@@ -105,6 +155,16 @@ public class HttpUtils
         @Test
         public void detectsGzipAmongOtherEncodings() {
             assertTrue(HttpUtils.isGzipped("gzip, deflate"));
+        }
+
+        @Test
+        public void stripMaliciousHeaderChars() {
+            assertEquals("something", HttpUtils.stripMaliciousHeaderChars("some\r\nthing"));
+            assertEquals("some thing", HttpUtils.stripMaliciousHeaderChars("some thing"));
+            assertEquals("something", HttpUtils.stripMaliciousHeaderChars("\nsome\r\nthing\r"));
+            assertEquals("", HttpUtils.stripMaliciousHeaderChars("\r"));
+            assertEquals("", HttpUtils.stripMaliciousHeaderChars(""));
+            assertNull(HttpUtils.stripMaliciousHeaderChars(null));
         }
     }
 }

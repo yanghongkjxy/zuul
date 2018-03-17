@@ -81,6 +81,7 @@ public class HttpHeaderNames
     public static final HeaderName X_FORWARDED_FOR = HEADER_NAME_CACHE.get("X-Forwarded-For");
     public static final HeaderName X_FORWARDED_PORT = HEADER_NAME_CACHE.get("X-Forwarded-Port");
     public static final HeaderName X_FORWARDED_PROTO = HEADER_NAME_CACHE.get("X-Forwarded-Proto");
+    public static final HeaderName X_FORWARDED_PROTO_VERSION = HEADER_NAME_CACHE.get("X-Forwarded-Proto-Version");
 
     public static final HeaderName ACCESS_CONTROL_ALLOW_ORIGIN = HEADER_NAME_CACHE.get("Access-Control-Allow-Origin");
     public static final HeaderName ACCESS_CONTROL_ALLOW_CREDENTIALS = HEADER_NAME_CACHE.get("Access-Control-Allow-Credentials");
@@ -88,6 +89,8 @@ public class HttpHeaderNames
     public static final HeaderName ACCESS_CONTROL_ALLOW_METHODS = HEADER_NAME_CACHE.get("Access-Control-Allow-Methods");
     public static final HeaderName STRICT_TRANSPORT_SECURITY = HEADER_NAME_CACHE.get("Strict-Transport-Security");
 
+    public static final HeaderName LINK = HEADER_NAME_CACHE.get("Link");
+    
     /**
      * Looks up the name in the cache, and if does not exist, then creates and adds a new one
      * (up to the max cache size).
